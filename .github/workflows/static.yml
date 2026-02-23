@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum WINGO Fusion | AI Prediction Engine</title>
+    
+    <!-- Tailwind CSS & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700&display=swap');
+        
+        :root {
+            --font-sans: 'Inter', sans-serif;
+            --font-orbitron: 'Orbitron', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #020617;
+            color: #f8fafc;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .font-orbitron { font-family: var(--font-orbitron); }
+        
+        .glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+
+        /* Animations */
+        @keyframes pulse-blue {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-blue { animation: pulse-blue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+
+    <!-- React & Dependencies via ESM -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.3.1",
+        "react-dom": "https://esm.sh/react-dom@18.3.1",
+        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.460.0",
+        "recharts": "https://esm.sh/recharts@2.13.3",
+        "@google/genai": "https://esm.sh/@google/genai@latest",
+        "react-markdown": "https://esm.sh/react-markdown@9.0.1"
+      }
+    }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+        import React, { useState, useEffect, useCallback, useRef } from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { 
+            Zap, BarChart3, MessageSquare, Scan, RefreshCw, Cpu, 
+            History as HistoryIcon, TrendingUp, Maximize2, Minimize2, 
+            Shield, AlertTriangle, ExternalLink, Send, Bot, User, 
+            Loader2, Camera, Clock 
+        } from 'lucide-react';
+        import { 
+            XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+            AreaChart, Area 
+        } from 'recharts';
+        import { GoogleGenAI, Type } from "@google/genai";
+        import Markdown from 'react-markdown';
+
+        // --- Configuration ---
+        const API_KEY = "AIzaSyBJVZbve4Oj9L1Z6Eoj9Sry2niDVC2Z9MM";
+        const GAME_URL = "https://www.lottery7ww.com/#/register?invitationCode=8786413101107";
+        const HISTORY_API = "https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json";
+
+        const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+        // --- Services ---
+        const getWingoPrediction = async (history) => {
+            try {
+                const response = await ai.models.generateContent({
+                    model: "gemini-3-flash-preview",
+                    contents: [{ parts: [{ text: `Analyze WINGO history: ${JSON.stringify(history)}. Predict next Size, Color, 3 Numbers, and Confidence.` }] }],
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: Type.OBJECT,
+                            properties: {
+                                nextIssue: { type: Type.STRING },
+                                prediction: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        size: { type: Type.STRING },
+                                        color: { type: Type.STRING },
+                                        numbers: { type: Type.ARRAY, items: { type: Type.NUMBER } },
+                                        confidence: { type: Type.NUMBER }
+                                    },
+                                    required: ["size", "color", "numbers", "confidence"]
+                                },
+                                analysis: { type: Type.STRING }
+                            },
+                            required: ["nextIssue", "prediction", "analysis"]
+                        }
+                    }
+                });
+                return JSON.parse(response.text);
+            } catch (e) { return null; }
+        };
+
+        // --- Components ---
+        const PredictorDisplay = ({ prediction, loading }) => (
+            <div className="relative overflow-hidden glass rounded-3xl border border-blue-500/20 p-6 shadow-2xl">
+                <div className="flex justify-between mb-6">
+                    <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Target Issue</span>
+                        <div className="text-lg font-orbitron font-bold text-white">#{prediction?.nextIssue || '-----'}</div>
+                    </div>
+                    <div className="text-right">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Confidence</span>
+                        <div className="text-lg font-orbitron font-bold text-blue-400">{prediction?.prediction.confidence || 0}%</div>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-slate-900/50 rounded-2xl p-4 border border-white/5 text-center">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Size</span>
+                        <div className={`text-4xl font-orbitron font-bold ${prediction?.prediction.size === 'Big' ? 'text-rose-500' : 'text-blue-400'}`}>
+                            {prediction?.prediction.size || '---'}
+                        </div>
+                    </div>
+                    <div className="bg-slate-900/50 rounded-2xl p-4 border border-white/5 text-center">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Color</span>
+                        <div className={`text-2xl font-orbitron font-bold ${prediction?.prediction.color === 'Green' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {prediction?.prediction.color || '---'}
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                        <Zap className="w-3 h-3 text-amber-400" /> Hot Numbers
+                    </span>
+                    <div className="flex gap-3">
+                        {(prediction?.prediction.numbers || [0, 0, 0]).map((n, i) => (
+                            <div key={i} className="flex-1 h-12 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center text-xl font-orbitron font-bold text-blue-400">
+                                {n || '-'}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const HistoryTable = ({ history }) => (
+            <div className="glass rounded-3xl border border-slate-800 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Live History</h3>
+                </div>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                    {history.map((record, idx) => (
+                        <div key={record.issue} className="flex items-center justify-between p-3 rounded-xl bg-slate-900/40 border border-slate-800/50">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-mono text-slate-500">#{record.issue}</span>
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${record.color === 'Red' ? 'bg-rose-600' : 'bg-emerald-600'}`}>
+                                        {record.number}
+                                    </div>
+                                    <span className="text-[10px] font-bold uppercase text-slate-300">{record.size}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+
+        // --- Main App ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('PREDICTOR');
+            const [history, setHistory] = useState([]);
+            const [prediction, setPrediction] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [webviewLoading, setWebviewLoading] = useState(true);
+            const [isExpanded, setIsExpanded] = useState(false);
+            const lastIssueRef = useRef(null);
+
+            const fetchHistory = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch(HISTORY_API).catch(() => null);
+                    let dataList = [];
+                    if (res?.ok) {
+                        const data = await res.json();
+                        dataList = data?.data?.list || [];
+                    } else {
+                        // Mock fallback
+                        dataList = Array.from({ length: 10 }, (_, i) => ({
+                            issueNumber: (Date.now() - i * 60000).toString().slice(-5),
+                            number: Math.floor(Math.random() * 10)
+                        }));
+                    }
+
+                    const formatted = dataList.map(item => ({
+                        issue: item.issueNumber.toString().slice(-5),
+                        number: Number(item.number),
+                        size: Number(item.number) >= 5 ? 'Big' : 'Small',
+                        color: [1, 3, 7, 9].includes(Number(item.number)) ? 'Green' : 'Red'
+                    }));
+
+                    setHistory(formatted);
+                    if (formatted[0]?.issue !== lastIssueRef.current) {
+                        lastIssueRef.current = formatted[0].issue;
+                        const pred = await getWingoPrediction(formatted);
+                        setPrediction(pred);
+                    }
+                } finally { setLoading(false); }
+            }, []);
+
+            useEffect(() => {
+                fetchHistory();
+                const interval = setInterval(fetchHistory, 30000);
+                return () => clearInterval(interval);
+            }, [fetchHistory]);
+
+            return (
+                <div className="h-screen flex flex-col lg:flex-row bg-slate-950 overflow-hidden">
+                    {/* Sidebar */}
+                    <nav className="w-full lg:w-16 bg-slate-900 border-r border-white/5 flex lg:flex-col items-center py-4 glass">
+                        <div className="flex flex-1 lg:flex-col justify-around lg:justify-start items-center gap-8 w-full">
+                            <button onClick={() => setActiveTab('PREDICTOR')} className={`p-2 rounded-xl ${activeTab === 'PREDICTOR' ? 'text-blue-400 bg-blue-500/10' : 'text-slate-500'}`}>
+                                <Zap className="w-6 h-6" />
+                            </button>
+                            <button onClick={() => setActiveTab('HISTORY')} className={`p-2 rounded-xl ${activeTab === 'HISTORY' ? 'text-blue-400 bg-blue-500/10' : 'text-slate-500'}`}>
+                                <HistoryIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+                    </nav>
+
+                    {/* Content */}
+                    <main className={`transition-all duration-500 flex flex-col border-r border-white/5 bg-slate-900/40 ${isExpanded ? 'w-0 opacity-0' : 'w-full lg:w-[450px]'}`}>
+                        <header className="h-14 flex items-center justify-between px-6 border-b border-white/5 glass">
+                            <div className="flex items-center gap-2">
+                                <Cpu className="w-5 h-5 text-blue-400 animate-pulse" />
+                                <span className="font-orbitron font-bold text-xs tracking-widest text-blue-400 uppercase">Quantum Fusion</span>
+                            </div>
+                            <button onClick={fetchHistory} className="p-2 hover:bg-slate-800 rounded-lg">
+                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                            </button>
+                        </header>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                            {activeTab === 'PREDICTOR' ? (
+                                <>
+                                    <PredictorDisplay prediction={prediction} loading={loading} />
+                                    <div className="glass p-4 rounded-2xl border border-emerald-500/20">
+                                        <h3 className="text-[10px] font-bold text-emerald-400 mb-1 uppercase tracking-widest flex items-center gap-2">
+                                            <TrendingUp className="w-3 h-3" /> AI Strategy
+                                        </h3>
+                                        <p className="text-[10px] text-slate-400 italic leading-relaxed">
+                                            {prediction?.analysis || "Analyzing quantum lattice..."}
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <HistoryTable history={history} />
+                            )}
+                        </div>
+                    </main>
+
+                    {/* Webview */}
+                    <section className="flex-1 relative bg-black">
+                        <div className="absolute top-4 right-4 z-50 flex gap-2">
+                            <button onClick={() => setIsExpanded(!isExpanded)} className="bg-slate-900/80 p-2 rounded-lg border border-white/10 text-slate-400 backdrop-blur-md">
+                                {isExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                            </button>
+                            <a href={GAME_URL} target="_blank" className="bg-blue-600 p-2 rounded-lg text-white">
+                                <ExternalLink className="w-5 h-5" />
+                            </a>
+                        </div>
+                        <iframe src={GAME_URL} className="w-full h-full border-none" onLoad={() => setWebviewLoading(false)} />
+                    </section>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
